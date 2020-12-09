@@ -38,6 +38,15 @@ export interface Server {
   checkReachable(): Promise<boolean>;
 }
 
+// Represents a Shadowsocks server configuration.
+export interface ServerConfig {
+  host?: string;
+  port?: number;
+  password?: string;
+  method?: string;
+  name?: string;
+}
+
 export interface ServerRepository {
   // TODO: change object to cordova.plugins.uproyx.ServerConfig once we decouple the definition from
   // cordova-plugin-outline

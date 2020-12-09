@@ -16,7 +16,7 @@
 
 import * as errors from '../model/errors';
 import * as events from '../model/events';
-import {Server} from '../model/server';
+import {Server, ServerConfig} from '../model/server';
 
 import {PersistentServer} from './persistent_server';
 
@@ -27,7 +27,7 @@ export class OutlineServer implements PersistentServer {
       ['chacha20-ietf-poly1305', 'aes-128-gcm', 'aes-192-gcm', 'aes-256-gcm'];
 
   constructor(
-      public readonly id: string, public config: cordova.plugins.outline.ServerConfig,
+      public readonly id: string, public config: ServerConfig,
       private tunnel: cordova.plugins.outline.Tunnel, private eventQueue: events.EventQueue) {
     this.tunnel.onStatusChange((status: TunnelStatus) => {
       let statusEvent: events.OutlineEvent;

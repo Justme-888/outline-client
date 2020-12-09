@@ -36,22 +36,14 @@ declare namespace cordova.plugins.outline {
   // Quits the application. Only supported in macOS.
   function quitApplication(): void;
 
-  // Represents a Shadowsocks server configuration.
-  interface ServerConfig {
-    method?: string;
-    password?: string;
-    host?: string;
-    port?: number;
-    name?: string;
-  }
 
   // Represents a VPN tunnel to a proxy server.
   class Tunnel {
     // Creates a new instance with |serverConfig|.
     // A sequential ID will be generated if |id| is absent.
-    constructor(serverConfig: ServerConfig, id?: string);
+    constructor(serverConfig: import('../../www/model/server').ServerConfig, id?: string);
 
-    config: ServerConfig;
+    config: import('../../www/model/server').ServerConfig;
 
     readonly id: string;
 

@@ -16,13 +16,14 @@ import {ipcRenderer} from 'electron';
 import * as promiseIpc from 'electron-promise-ipc';
 
 import * as errors from '../model/errors';
+import {ServerConfig} from '../model/server';
 
 export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
   private statusChangeListener: ((status: TunnelStatus) => void)|null = null;
 
   private running = false;
 
-  constructor(public config: cordova.plugins.outline.ServerConfig, public id: string) {
+  constructor(public config: ServerConfig, public id: string) {
     const serverName = this.config.name || this.config.host || '';
     // This event is received when the proxy connects. It is mainly used for signaling the UI that
     // the proxy has been automatically connected at startup (if the user was connected at shutdown)
@@ -37,7 +38,7 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
 
   async start() {
     if (this.running) {
-      return Promise.resolve();
+      return;
     }
 
     ipcRenderer.once(`proxy-disconnected-${this.id}`, (e: Event) => {
