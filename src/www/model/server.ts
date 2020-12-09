@@ -38,8 +38,8 @@ export interface Server {
   checkReachable(): Promise<boolean>;
 }
 
-// Represents a Shadowsocks server configuration.
-export interface ServerConfig {
+// Represents a Shadowsocks proxy server configuration.
+export interface ShadowsocksConfig {
   host?: string;
   port?: number;
   password?: string;
@@ -47,10 +47,21 @@ export interface ServerConfig {
   name?: string;
 }
 
+// Endpoint to retrieve proxy configurations.
+export interface ProxyConfigSource {
+  url: string;
+}
+
+// Server configuration.
+export interface ServerConfig {
+  proxy?: ShadowsocksConfig;
+  source?: ProxyConfigSource;
+  name?: string;
+}
+
 export interface ServerRepository {
-  // TODO: change object to cordova.plugins.uproyx.ServerConfig once we decouple the definition from
-  // cordova-plugin-outline
-  add(serverConfig: {}): void;
+  add(serverConfig: ServerConfig): void;
+  update(serverId: string, serverConfig: ServerConfig): void;
   forget(serverId: string): void;
   undoForget(serverId: string): void;
   getAll(): Server[];

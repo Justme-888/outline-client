@@ -16,19 +16,19 @@
 
 import * as errors from '../model/errors';
 import * as events from '../model/events';
-import {Server, ServerConfig} from '../model/server';
+import {ProxyConfigSource, Server, ServerConfig} from '../model/server';
 
 import {PersistentServer} from './persistent_server';
 
 export class OutlineServer implements PersistentServer {
-  // We restrict to AEAD ciphers because unsafe ciphers are not supported in go-tun2socks.
+  // We restrict to AEAD ciphers because unsafe ciphers are not supported in outline-go-tun2socks.
   // https://shadowsocks.org/en/spec/AEAD-Ciphers.html
   private static readonly SUPPORTED_CIPHERS =
       ['chacha20-ietf-poly1305', 'aes-128-gcm', 'aes-192-gcm', 'aes-256-gcm'];
 
   constructor(
-      public readonly id: string, public config: ServerConfig,
-      private tunnel: cordova.plugins.outline.Tunnel, private eventQueue: events.EventQueue) {
+      public readonly id: string, private tunnel: cordova.plugins.outline.Tunnel,
+      private eventQueue: events.EventQueue) {
     this.tunnel.onStatusChange((status: TunnelStatus) => {
       let statusEvent: events.OutlineEvent;
       switch (status) {
@@ -47,10 +47,18 @@ export class OutlineServer implements PersistentServer {
       }
       eventQueue.enqueue(statusEvent);
     });
+
+    this.tunnel.onConfigChange((config: ServerConfig) => {
+      eventQueue.enqueue(new events.ServerConfigurationChanged(this, config));
+    });
+  }
+
+  get config() {
+    return this.tunnel.config;
   }
 
   get name() {
-    return this.config.name || this.config.host || '';
+    return this.config.name || this.config.proxy ?.name || this.host || '';
   }
 
   set name(newName: string) {
@@ -58,13 +66,24 @@ export class OutlineServer implements PersistentServer {
   }
 
   get host() {
-    return this.config.host;
+    if (this.config.proxy) {
+      return `${this.config.proxy.host}:${this.config.proxy.port}`;
+    }
+    // TODO(alalama): refine which components of the source URL to show.
+    return this.config.source ?.url || '';
   }
 
   async connect() {
     try {
+      if (this.config.source) {
+        await this.tunnel.fetchProxyConfig();
+      }
       await this.tunnel.start();
     } catch (e) {
+      if (this.config.source) {
+        // Remove the proxy configuration in case fetching succeeded but connecting failed.
+        delete this.config.proxy;
+      }
       // e originates in "native" code: either Cordova or Electron's main process.
       // Because of this, we cannot assume "instanceof OutlinePluginError" will work.
       if (e.errorCode) {
@@ -80,6 +99,10 @@ export class OutlineServer implements PersistentServer {
     } catch (e) {
       // All the plugins treat disconnection errors as ErrorCode.UNEXPECTED.
       throw new errors.RegularNativeError();
+    } finally {
+      if (this.config.source) {
+        delete this.config.proxy;
+      }
     }
   }
 

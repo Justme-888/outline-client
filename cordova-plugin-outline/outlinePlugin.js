@@ -79,7 +79,9 @@ function Tunnel(config, id) {
   }
 
   if (!config) {
-    throw new Error('Server configuration is required');
+    throw new Error('server configuration is required');
+  } else if (!config.source && !config.proxy) {
+    throw new Error('must provide a proxy configuration or configuration source');
   }
   this.config = config;
 }
@@ -97,8 +99,12 @@ Tunnel.prototype._exec = function(cmd, args, success, error) {
   exec(success, error, PLUGIN_NAME, cmd, [this.id_].concat(args));
 };
 
+Tunnel.prototype.fetchProxyConfig = function() {
+  return this._promiseExec('fetchProxyConfig', [this.config.source]);
+};
+
 Tunnel.prototype.start = function() {
-  return this._promiseExec('start', [this.config]);
+  return this._promiseExec('start', [this.config.proxy]);
 };
 
 Tunnel.prototype.stop = function() {
@@ -110,14 +116,21 @@ Tunnel.prototype.isRunning = function() {
 };
 
 Tunnel.prototype.isReachable = function() {
-  return this._promiseExec('isReachable', [this.config.host, this.config.port]);
+  return this._promiseExec('isReachable', [this.config.proxy.host, this.config.proxy.port]);
 };
 
 Tunnel.prototype.onStatusChange = function(listener) {
   const onError = function(err) {
-    console.warn('Failed to execute disconnect listener', err);
+    console.warn('failed to execute status change listener', err);
   };
   this._exec('onStatusChange', [], listener, onError);
+};
+
+Tunnel.prototype.onConfigChange = function(listener) {
+  const onError = function(err) {
+    console.warn('failed to execute config change listener', err);
+  };
+  this._exec('onConfigChange', [], listener, onError);
 };
 
 module.exports = {

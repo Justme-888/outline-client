@@ -16,7 +16,7 @@ import {SHADOWSOCKS_URI} from 'ShadowsocksConfig/shadowsocks_config';
 
 import * as errors from '../model/errors';
 import * as events from '../model/events';
-import {Server} from '../model/server';
+import {Server, ServerConfig, ShadowsocksConfig} from '../model/server';
 
 import {Clipboard} from './clipboard';
 import {EnvironmentVariables} from './environment';
@@ -115,6 +115,8 @@ export class App {
     this.eventQueue.subscribe(events.ServerConnected, this.showServerConnected.bind(this));
     this.eventQueue.subscribe(events.ServerDisconnected, this.showServerDisconnected.bind(this));
     this.eventQueue.subscribe(events.ServerReconnecting, this.showServerReconnecting.bind(this));
+    this.eventQueue.subscribe(
+        events.ServerConfigurationChanged, this.updateServerConfig.bind(this));
 
     this.eventQueue.startPublishing();
 
@@ -220,6 +222,11 @@ export class App {
     card.state = 'RECONNECTING';
   }
 
+  private updateServerConfig(event: events.ServerConfigurationChanged) {
+    console.debug(`server ${event.server.id} config changed`);
+    this.serverRepo.update(event.server.id, event.config);
+  }
+
   private displayZeroStateUi() {
     if (this.rootEl.$.serversView.shouldShowZeroState) {
       this.rootEl.$.addServerView.openAddServerSheet();
@@ -283,6 +290,7 @@ export class App {
     try {
       this.serverRepo.add(event.detail.serverConfig);
     } catch (err) {
+      console.error(`failed to add server: ${err}`);
       this.changeToDefaultPage();
       this.showLocalizedError(err);
     }
@@ -308,6 +316,35 @@ export class App {
     } else if (fromClipboard && addServerView.isAddingServer()) {
       return console.debug('Already adding a server');
     }
+
+    const serverConfig: ServerConfig = {};
+    // TODO(alalama): support ssconf://?
+    if (accessKey.startsWith('https://')) {
+      serverConfig.source = {url: accessKey};
+      // TODO(alalama): refine name, l10n
+      serverConfig.name = 'Dynamic Server';
+    } else {
+      serverConfig.proxy = this.parseShadowsocksAccessKey(accessKey);
+      serverConfig.name = serverConfig.proxy.name;
+    }
+
+    if (!this.serverRepo.containsServer(serverConfig)) {
+      // Only prompt the user to add new servers.
+      try {
+        addServerView.openAddServerConfirmationSheet(accessKey, serverConfig);
+      } catch (err) {
+        console.error('Failed to open add sever confirmation sheet:', err.message);
+        if (!fromClipboard) this.showLocalizedError();
+      }
+    } else if (!fromClipboard) {
+      // Display error message if this is not a clipboard add.
+      addServerView.close();
+      this.showLocalizedError(new errors.ServerAlreadyAdded(
+          this.serverRepo.createServer('', serverConfig, this.eventQueue)));
+    }
+  }
+
+  private parseShadowsocksAccessKey(accessKey: string): ShadowsocksConfig {
     // Expect SHADOWSOCKS_URI.parse to throw on invalid access key; propagate any exception.
     let shadowsocksConfig = null;
     try {
@@ -323,27 +360,13 @@ export class App {
         this.localize('server-default-name-outline') :
         shadowsocksConfig.tag.data ? shadowsocksConfig.tag.data :
                                      this.localize('server-default-name');
-    const serverConfig = {
+    return {
       host: shadowsocksConfig.host.data,
       port: shadowsocksConfig.port.data,
       method: shadowsocksConfig.method.data,
       password: shadowsocksConfig.password.data,
       name,
     };
-    if (!this.serverRepo.containsServer(serverConfig)) {
-      // Only prompt the user to add new servers.
-      try {
-        addServerView.openAddServerConfirmationSheet(accessKey, serverConfig);
-      } catch (err) {
-        console.error('Failed to open add sever confirmation sheet:', err.message);
-        if (!fromClipboard) this.showLocalizedError();
-      }
-    } else if (!fromClipboard) {
-      // Display error message if this is not a clipboard add.
-      addServerView.close();
-      this.showLocalizedError(new errors.ServerAlreadyAdded(
-          this.serverRepo.createServer('', serverConfig, this.eventQueue)));
-    }
   }
 
   private async forgetServer(event: CustomEvent) {
@@ -379,20 +402,24 @@ export class App {
     const card = this.getCardByServerId(serverId);
 
     console.log(`connecting to server ${serverId}`);
-
     card.state = 'CONNECTING';
     try {
       await server.connect();
       card.state = 'CONNECTED';
+      card.serverHost = server.host;
       console.log(`connected to server ${serverId}`);
       this.rootEl.showToast(this.localize('server-connected', 'serverName', server.name));
       this.maybeShowAutoConnectDialog();
     } catch (e) {
       card.state = 'DISCONNECTED';
       this.showLocalizedError(e);
-      console.error(`could not connect to server ${serverId}: ${e.name}`);
+      console.error(`could not connect to server ${serverId}: ${e}`);
       if (!(e instanceof errors.RegularNativeError)) {
-        this.errorReporter.report(`connection failure: ${e.name}`, 'connection-failure');
+        try {
+          await this.errorReporter.report(`connection failure: ${e.name}`, 'connection-failure');
+        } catch (err) {
+          console.error(`failed to submit error report: ${err}`);
+        }
       }
     }
   }
@@ -428,6 +455,7 @@ export class App {
     try {
       await server.disconnect();
       card.state = 'DISCONNECTED';
+      card.serverHost = server.host;
       console.log(`disconnected from server ${serverId}`);
       this.rootEl.showToast(this.localize('server-disconnected', 'serverName', server.name));
     } catch (e) {

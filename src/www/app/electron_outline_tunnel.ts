@@ -20,11 +20,11 @@ import {ServerConfig} from '../model/server';
 
 export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
   private statusChangeListener: ((status: TunnelStatus) => void)|null = null;
+  private configChangeListener: ((config: ServerConfig) => void)|null = null;
 
   private running = false;
 
   constructor(public config: ServerConfig, public id: string) {
-    const serverName = this.config.name || this.config.host || '';
     // This event is received when the proxy connects. It is mainly used for signaling the UI that
     // the proxy has been automatically connected at startup (if the user was connected at shutdown)
     ipcRenderer.on(`proxy-connected-${this.id}`, (e: Event) => {
@@ -34,11 +34,28 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
     ipcRenderer.on(`proxy-reconnecting-${this.id}`, (e: Event) => {
       this.handleStatusChange(TunnelStatus.RECONNECTING);
     });
+
+    ipcRenderer.on(`config-changed-${this.id}`, (e: Event, config: ServerConfig) => {
+      this.handleConfigChange(config);
+    });
+  }
+
+  async fetchProxyConfig() {
+    if (!this.config.source) {
+      throw new errors.InvalidServerCredentials();
+    }
+    try {
+      const proxies = await promiseIpc.send('fetch-proxy-config', {source: this.config.source});
+      // TODO(alalama): policy
+      this.config.proxy = proxies[0];
+    } catch (e) {
+      handleMainProcessError(e);
+    }
   }
 
   async start() {
     if (this.running) {
-      return;
+      return Promise.resolve();
     }
 
     ipcRenderer.once(`proxy-disconnected-${this.id}`, (e: Event) => {
@@ -49,11 +66,7 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
       await promiseIpc.send('start-proxying', {config: this.config, id: this.id});
       this.running = true;
     } catch (e) {
-      if (typeof e === 'number') {
-        throw new errors.OutlinePluginError(e);
-      } else {
-        throw e;
-      }
+      handleMainProcessError(e);
     }
   }
 
@@ -75,11 +88,15 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
   }
 
   isReachable(): Promise<boolean> {
-    return promiseIpc.send('is-reachable', this.config);
+    return promiseIpc.send('is-reachable', this.config.proxy);
   }
 
   onStatusChange(listener: (status: TunnelStatus) => void): void {
     this.statusChangeListener = listener;
+  }
+
+  onConfigChange(listener: (config: ServerConfig) => void) {
+    this.configChangeListener = listener;
   }
 
   private handleStatusChange(status: TunnelStatus) {
@@ -87,7 +104,22 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
     if (this.statusChangeListener) {
       this.statusChangeListener(status);
     } else {
-      console.error(`${this.id} status changed to ${status} but no listener set`);
+      console.warn(`${this.id} status changed to ${status} but no listener set`);
     }
   }
+
+  private handleConfigChange(config: ServerConfig) {
+    if (this.configChangeListener) {
+      this.configChangeListener(config);
+    } else {
+      console.warn(`${this.id} config changed but no listener set`);
+    }
+  }
+}
+
+function handleMainProcessError(e: number|Error) {
+  if (typeof e === 'number') {
+    throw new errors.OutlinePluginError(e);
+  }
+  throw e;
 }

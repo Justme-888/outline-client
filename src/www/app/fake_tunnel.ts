@@ -32,9 +32,26 @@ export class FakeOutlineTunnel implements cordova.plugins.outline.Tunnel {
     return this.config.name?.toLowerCase().includes('unreachable');
   }
 
+  async fetchProxyConfig() {
+    if (!this.config.source) {
+      throw new errors.IllegalServerConfiguration();
+    }
+    this.config.proxy = {
+      host: '127.0.0.1',
+      port: 1080,
+      password: 'test',
+      method: 'chacha20-ietf-poly1305',
+      name: 'Dynamic Server'
+    };
+  }
+
   async start(): Promise<void> {
     if (this.running) {
       return;
+    }
+
+    if (!this.config.proxy) {
+      throw new errors.IllegalServerConfiguration();
     }
 
     if (this.playUnreachable()) {
@@ -62,6 +79,10 @@ export class FakeOutlineTunnel implements cordova.plugins.outline.Tunnel {
   }
 
   onStatusChange(listener: (status: TunnelStatus) => void): void {
+    // NOOP
+  }
+
+  onConfigChange(listener: (config: ServerConfig) => void): void {
     // NOOP
   }
 }

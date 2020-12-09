@@ -93,7 +93,7 @@ main({
   getPersistentServerFactory: () => {
     return (serverId: string, config: ServerConfig, eventQueue: EventQueue) => {
       return new OutlineServer(
-          serverId, config,
+          serverId,
           isOsSupported ? new ElectronOutlineTunnel(config, serverId) :
                           new FakeOutlineTunnel(config, serverId),
           eventQueue);

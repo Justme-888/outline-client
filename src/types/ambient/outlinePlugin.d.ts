@@ -36,22 +36,27 @@ declare namespace cordova.plugins.outline {
   // Quits the application. Only supported in macOS.
   function quitApplication(): void;
 
-
   // Represents a VPN tunnel to a proxy server.
   class Tunnel {
-    // Creates a new instance with |serverConfig|.
-    // A sequential ID will be generated if |id| is absent.
-    constructor(serverConfig: import('../../www/model/server').ServerConfig, id?: string);
+    // Creates a new instance with a server configuration. Throws if `config` does not include a
+    // proxy configuration or a proxy configuration source.
+    // A sequential ID will be generated if `id` is absent.
+    constructor(config: import('../../www/model/server').ServerConfig, id?: string);
 
     config: import('../../www/model/server').ServerConfig;
 
     readonly id: string;
 
-    // Starts the VPN service, and tunnels all the traffic to a local Shadowsocks
-    // server as dictated by its configuration. If there is another running
-    // instance, broadcasts a disconnect event and stops the running tunnel.
-    // In such case, restarts tunneling while preserving the VPN tunnel.
-    // Rejects with an OutlinePluginError.
+    // Retrieves one or more proxy configurations from the proxy configuration source and sets
+    // `config.proxy`. Throws if `config.source` is not present or if there is an error retrieving
+    // the proxy configuration.
+    fetchProxyConfig(): Promise<void>;
+
+    // Starts the VPN service and tunnels all the traffic to a Shadowsocks server,
+    // as dictated by its proxy configuration.
+    // If there is another running instance, broadcasts a disconnect event and stops the running
+    // tunnel. In such case, restarts tunneling while preserving the VPN tunnel. Rejects with an
+    // OutlinePluginError.
     start(): Promise<void>;
 
     // Stops the tunnel and VPN service.
@@ -60,11 +65,14 @@ declare namespace cordova.plugins.outline {
     // Returns whether the tunnel instance is active.
     isRunning(): Promise<boolean>;
 
-    // Returns whether the proxy server is reachable by attempting to establish
-    // a socket to the IP and port specified in |config|.
+    // Returns whether the proxy server is reachable by attempting to open a TCP socket
+    // to the IP and port specified in `config.proxy`.
     isReachable(): Promise<boolean>;
 
-    // Sets a listener, to be called when the VPN tunnel status changes.
+    // Sets a listener to be called when the VPN tunnel status changes.
     onStatusChange(listener: (status: TunnelStatus) => void): void;
+
+    // Sets a listener to be called when the tunnel configuration changes.
+    onConfigChange(listener: (config: import('../../www/model/server').ServerConfig) => void): void;
   }
 }
