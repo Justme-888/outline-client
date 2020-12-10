@@ -132,11 +132,11 @@ Tunnel.prototype.onStatusChange = function(listener) {
   this._exec('onStatusChange', [], listener, onError);
 };
 
-Tunnel.prototype.onConfigChange = function(listener) {
+Tunnel.prototype.onConfigSourceUrlChange = function(listener) {
   const onError = function(err) {
     console.warn('failed to execute config change listener', err);
   };
-  this._exec('onConfigChange', [], listener, onError);
+  this._exec('onConfigSourceUrlChange', [], listener, onError);
 };
 
 module.exports = {

@@ -82,7 +82,7 @@ export class FakeOutlineTunnel implements cordova.plugins.outline.Tunnel {
     // NOOP
   }
 
-  onConfigChange(listener: (config: ServerConfig) => void): void {
+  onConfigSourceUrlChange(listener: (url: string) => void): void {
     // NOOP
   }
 }

@@ -72,7 +72,7 @@ declare namespace cordova.plugins.outline {
     // Sets a listener to be called when the VPN tunnel status changes.
     onStatusChange(listener: (status: TunnelStatus) => void): void;
 
-    // Sets a listener to be called when the tunnel configuration changes.
-    onConfigChange(listener: (config: import('../../www/model/server').ServerConfig) => void): void;
+    // Sets a listener to be called when `config.source.url` changes.
+    onConfigSourceUrlChange(listener: (url: string) => void): void;
   }
 }

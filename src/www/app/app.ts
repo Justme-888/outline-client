@@ -116,7 +116,7 @@ export class App {
     this.eventQueue.subscribe(events.ServerDisconnected, this.showServerDisconnected.bind(this));
     this.eventQueue.subscribe(events.ServerReconnecting, this.showServerReconnecting.bind(this));
     this.eventQueue.subscribe(
-        events.ServerConfigurationChanged, this.updateServerConfig.bind(this));
+        events.ServerConfigSourceUrlChanged, this.updateServerConfigSourceUrl.bind(this));
 
     this.eventQueue.startPublishing();
 
@@ -222,9 +222,9 @@ export class App {
     card.state = 'RECONNECTING';
   }
 
-  private updateServerConfig(event: events.ServerConfigurationChanged) {
+  private updateServerConfigSourceUrl(event: events.ServerConfigSourceUrlChanged) {
     console.debug(`server ${event.server.id} config changed`);
-    this.serverRepo.update(event.server.id, event.config);
+    this.serverRepo.updateConfigSourceUrl(event.server.id, event.url);
   }
 
   private displayZeroStateUi() {

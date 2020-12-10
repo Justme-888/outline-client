@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Server, ServerConfig} from './server';
+import {Server} from './server';
 
 export interface OutlineEvent {}
 
@@ -46,8 +46,8 @@ export class ServerReconnecting implements OutlineEvent {
   constructor(public readonly server: Server) {}
 }
 
-export class ServerConfigurationChanged implements OutlineEvent {
-  constructor(public readonly server: Server, public readonly config: ServerConfig) {}
+export class ServerConfigSourceUrlChanged implements OutlineEvent {
+  constructor(public readonly server: Server, public readonly url: string) {}
 }
 
 // Simple publisher-subscriber queue.

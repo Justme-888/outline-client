@@ -61,7 +61,7 @@ export interface ServerConfig {
 
 export interface ServerRepository {
   add(serverConfig: ServerConfig): void;
-  update(serverId: string, serverConfig: ServerConfig): void;
+  updateConfigSourceUrl(serverId: string, url: string): void;
   forget(serverId: string): void;
   undoForget(serverId: string): void;
   getAll(): Server[];

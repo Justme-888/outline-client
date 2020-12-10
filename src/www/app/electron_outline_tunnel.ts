@@ -20,7 +20,7 @@ import {ServerConfig, ShadowsocksConfig} from '../model/server';
 
 export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
   private statusChangeListener: ((status: TunnelStatus) => void)|null = null;
-  private configChangeListener: ((config: ServerConfig) => void)|null = null;
+  private configSourceUrlListener: ((url: string) => void)|null = null;
 
   private running = false;
 
@@ -35,8 +35,8 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
       this.handleStatusChange(TunnelStatus.RECONNECTING);
     });
 
-    ipcRenderer.on(`config-changed-${this.id}`, (e: Event, config: ServerConfig) => {
-      this.handleConfigChange(config);
+    ipcRenderer.on(`config-source-url-changed-${this.id}`, (e: Event, url: string) => {
+      this.handleConfigSourceUrlChanged(url);
     });
   }
 
@@ -99,8 +99,8 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
     this.statusChangeListener = listener;
   }
 
-  onConfigChange(listener: (config: ServerConfig) => void) {
-    this.configChangeListener = listener;
+  onConfigSourceUrlChange(listener: (url: string) => void) {
+    this.configSourceUrlListener = listener;
   }
 
   private handleStatusChange(status: TunnelStatus) {
@@ -112,9 +112,9 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
     }
   }
 
-  private handleConfigChange(config: ServerConfig) {
-    if (this.configChangeListener) {
-      this.configChangeListener(config);
+  private handleConfigSourceUrlChanged(url: string) {
+    if (this.configSourceUrlListener) {
+      this.configSourceUrlListener(url);
     } else {
       console.warn(`${this.id} config changed but no listener set`);
     }

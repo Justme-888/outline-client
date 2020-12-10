@@ -48,8 +48,8 @@ export class OutlineServer implements PersistentServer {
       eventQueue.enqueue(statusEvent);
     });
 
-    this.tunnel.onConfigChange((config: ServerConfig) => {
-      eventQueue.enqueue(new events.ServerConfigurationChanged(this, config));
+    this.tunnel.onConfigSourceUrlChange((url: string) => {
+      eventQueue.enqueue(new events.ServerConfigSourceUrlChanged(this, url));
     });
   }
 

@@ -72,17 +72,17 @@ export class PersistentServerRepository implements ServerRepository {
     this.eventQueue.enqueue(new events.ServerAdded(server));
   }
 
-  update(serverId: string, config: ServerConfig) {
+  updateConfigSourceUrl(serverId: string, newSourceUrl: string) {
     const server = this.serverById.get(serverId);
     if (!server) {
       console.warn(`cannot update nonexistent server ${serverId}`);
       return;
     }
-    if (config.source?.url === server.config.source?.url) {
-      // Only update the server config if the source changed.
+    if (!server.config.source) {
+      console.warn(`missing server config source ${serverId}`);
       return;
     }
-    server.config.source = config.source;
+    server.config.source.url = newSourceUrl;
     this.storeServers();
   }
 
