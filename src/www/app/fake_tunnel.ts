@@ -15,7 +15,7 @@
 /// <reference path='../../types/ambient/outlinePlugin.d.ts'/>
 
 import * as errors from '../model/errors';
-import {ServerConfig} from '../model/server';
+import {ServerConfig, ShadowsocksConfig} from '../model/server';
 
 // Note that because this implementation does not emit disconnection events, "switching" between
 // servers in the server list will not work as expected.
@@ -32,17 +32,17 @@ export class FakeOutlineTunnel implements cordova.plugins.outline.Tunnel {
     return this.config.name?.toLowerCase().includes('unreachable');
   }
 
-  async fetchProxyConfig() {
+  async fetchProxyConfig(): Promise<ShadowsocksConfig[]> {
     if (!this.config.source) {
       throw new errors.IllegalServerConfiguration();
     }
-    this.config.proxy = {
+    return [{
       host: '127.0.0.1',
       port: 1080,
       password: 'test',
       method: 'chacha20-ietf-poly1305',
       name: 'Dynamic Server'
-    };
+    }];
   }
 
   async start(): Promise<void> {

@@ -63,6 +63,9 @@ export class OutlineServer implements PersistentServer {
 
   set name(newName: string) {
     this.config.name = newName;
+    if (this.config.proxy) {
+      this.config.proxy.name = newName;
+    }
   }
 
   get host() {
@@ -76,7 +79,9 @@ export class OutlineServer implements PersistentServer {
   async connect() {
     try {
       if (this.config.source) {
-        await this.tunnel.fetchProxyConfig();
+        const proxies = await this.tunnel.fetchProxyConfig();
+        // TODO(alalama): policy
+        this.config.proxy = proxies[0];
       }
       await this.tunnel.start();
     } catch (e) {

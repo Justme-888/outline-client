@@ -325,7 +325,6 @@ export class App {
       serverConfig.name = 'Dynamic Server';
     } else {
       serverConfig.proxy = this.parseShadowsocksAccessKey(accessKey);
-      serverConfig.name = serverConfig.proxy.name;
     }
 
     if (!this.serverRepo.containsServer(serverConfig)) {

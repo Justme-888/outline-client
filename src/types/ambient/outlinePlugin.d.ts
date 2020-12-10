@@ -50,7 +50,7 @@ declare namespace cordova.plugins.outline {
     // Retrieves one or more proxy configurations from the proxy configuration source and sets
     // `config.proxy`. Throws if `config.source` is not present or if there is an error retrieving
     // the proxy configuration.
-    fetchProxyConfig(): Promise<void>;
+    fetchProxyConfig(): Promise<Array<import('../../www/model/server').ShadowsocksConfig>>;
 
     // Starts the VPN service and tunnels all the traffic to a Shadowsocks server,
     // as dictated by its proxy configuration.

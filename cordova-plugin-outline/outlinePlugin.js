@@ -100,10 +100,16 @@ Tunnel.prototype._exec = function(cmd, args, success, error) {
 };
 
 Tunnel.prototype.fetchProxyConfig = function() {
+  if (!this.config.source) {
+    throw new OutlinePluginError(ERROR_CODE.ILLEGAL_SERVER_CONFIGURATION);
+  }
   return this._promiseExec('fetchProxyConfig', [this.config.source]);
 };
 
 Tunnel.prototype.start = function() {
+  if (!this.config.proxy) {
+    throw new OutlinePluginError(ERROR_CODE.ILLEGAL_SERVER_CONFIGURATION);
+  }
   return this._promiseExec('start', [this.config.proxy]);
 };
 

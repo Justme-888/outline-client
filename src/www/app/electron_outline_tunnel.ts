@@ -16,7 +16,7 @@ import {ipcRenderer} from 'electron';
 import * as promiseIpc from 'electron-promise-ipc';
 
 import * as errors from '../model/errors';
-import {ServerConfig} from '../model/server';
+import {ServerConfig, ShadowsocksConfig} from '../model/server';
 
 export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
   private statusChangeListener: ((status: TunnelStatus) => void)|null = null;
@@ -40,16 +40,17 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
     });
   }
 
-  async fetchProxyConfig() {
+  async fetchProxyConfig(): Promise<ShadowsocksConfig[]> {
     if (!this.config.source) {
       throw new errors.InvalidServerCredentials();
     }
     try {
-      const proxies = await promiseIpc.send('fetch-proxy-config', {source: this.config.source});
-      // TODO(alalama): policy
-      this.config.proxy = proxies[0];
+      return promiseIpc.send('fetch-proxy-config', {source: this.config.source});
     } catch (e) {
-      handleMainProcessError(e);
+      if (typeof e === 'number') {
+        throw new errors.OutlinePluginError(e);
+      }
+      throw e;
     }
   }
 
@@ -66,7 +67,10 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
       await promiseIpc.send('start-proxying', {config: this.config, id: this.id});
       this.running = true;
     } catch (e) {
-      handleMainProcessError(e);
+      if (typeof e === 'number') {
+        throw new errors.OutlinePluginError(e);
+      }
+      throw e;
     }
   }
 
@@ -115,11 +119,4 @@ export class ElectronOutlineTunnel implements cordova.plugins.outline.Tunnel {
       console.warn(`${this.id} config changed but no listener set`);
     }
   }
-}
-
-function handleMainProcessError(e: number|Error) {
-  if (typeof e === 'number') {
-    throw new errors.OutlinePluginError(e);
-  }
-  throw e;
 }
